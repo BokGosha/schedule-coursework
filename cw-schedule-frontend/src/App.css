@@ -428,10 +428,25 @@ body::-webkit-scrollbar {
     transition: all 0.2s ease;
 }
 
+.modal-body span {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
 .modal-body input:focus {
     outline: none;
     border-color: #3498db;
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.modal-body .color-preview {
+    padding: 3px;
+    border: 6px solid #e3e3e3;
+    border-radius: 4px;
+    height: 20px;
 }
 
 .modal-body input[type="color"] {
@@ -457,6 +472,24 @@ body::-webkit-scrollbar {
 }
 
 .modal-footer button:first-child {
+    background-color: #eee;
+    color: #2c3e50;
+}
+
+.modal-footer-1 {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.modal-footer-1 button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
     background-color: #eee;
     color: #2c3e50;
 }

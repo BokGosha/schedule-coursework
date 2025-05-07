@@ -13,6 +13,8 @@ const Header = () => {
 
         UserService.logout();
 
+        localStorage.removeItem("selectedColor");
+
         setIsAuth(false);
     };
 
@@ -25,9 +27,6 @@ const Header = () => {
             <h1 className="header-h1">Schedule</h1>
 
             <div className="header-div">
-                <Link to="./home" className="header-a">
-                    Главная
-                </Link>
                 {isAuth ? (
                     <>
                         <Link to="./schedules" className="header-a">

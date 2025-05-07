@@ -54,7 +54,7 @@ const getSharedUsers = async (scheduleId) => {
         });
 };
 
-const getSharedSchedule = async () => {
+const getSharedSchedules = async () => {
     let config = {
         method: "GET",
         maxBody: Infinity,
@@ -117,12 +117,34 @@ const getSharedSchedulesWithMeWithData = async () => {
         });
 };
 
+const deleteSharedSchedule = async (scheduleId) => {
+    let config = {
+        method: "DELETE",
+        maxBody: Infinity,
+        url: `${API_BASE_URL}/${scheduleId}`,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${AuthService.getToken()}`,
+        },
+    };
+
+    return axios
+        .request(config)
+        .then((response) => {
+            return response;
+        })
+        .catch((error) => {
+            throw error;
+        });
+};
+
 const SharedScheduleService = {
     createSharedSchedule,
     getSharedUsers,
-    getSharedSchedule,
+    getSharedSchedules,
     getSharedSchedulesWithMe,
     getSharedSchedulesWithMeWithData,
+    deleteSharedSchedule,
 };
 
 export default SharedScheduleService;

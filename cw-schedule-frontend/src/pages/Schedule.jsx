@@ -49,10 +49,7 @@ const Schedule = () => {
             const sharedSchedules =
                 await SharedScheduleService.getSharedSchedulesWithMeWithData();
 
-            const allEvents = [
-                ...schedules,
-                ...sharedSchedules,
-            ];
+            const allEvents = [...schedules, ...sharedSchedules];
 
             const formattedEvents = allEvents.map((event) => ({
                 id: event.id,

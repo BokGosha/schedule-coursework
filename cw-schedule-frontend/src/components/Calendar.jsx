@@ -5,9 +5,9 @@ import FullCalendar from "@fullcalendar/react";
 import rrulePlugin from "@fullcalendar/rrule";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import React, { useEffect, useState } from "react";
-import FriendsService from "../services/FriendsService";
 import ScheduleService from "../services/ScheduleService";
 import SharedScheduleService from "../services/SharedScheduleService";
+import UserService from "../services/UserService";
 
 const Calendar = ({ events, handleDateClick, refreshEvents }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -19,48 +19,53 @@ const Calendar = ({ events, handleDateClick, refreshEvents }) => {
         description: "",
         color: "",
     });
-    const [sharedWithUsers, setSharedWithUsers] = useState([]);
-    const [newShareUser, setNewShareUser] = useState("");
-    const [friends, setFriends] = useState([]);
+    const [owner, setOwner] = useState(null);
+    const [isEventOwner, setIsEventOwner] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (editModalOpen && selectedEvent) {
-            const sharedSchedules = SharedScheduleService.getSharedSchedulesWithMe();
-            console.log(sharedSchedules);
-            
-            console.log(sharedSchedules);
-            
-            console.log(sharedWithUsers);
-            
+            const loadData = async () => {
+                setIsLoading(true);
+                try {
+                    const sharedSchedules =
+                        await SharedScheduleService.getSharedSchedulesWithMeWithData();
 
-            // Загрузка списка друзей
-            FriendsService.getFriends().then(setFriends);
+                    const selectedEventInfo =
+                        sharedSchedules.length == 0
+                            ? await ScheduleService.getScheduleById(
+                                  selectedEvent.id
+                              )
+                            : sharedSchedules.find(
+                                  (schedule) =>
+                                      schedule.id === parseInt(selectedEvent.id)
+                              );
+
+                    const isOwner =
+                        parseInt(selectedEventInfo.user_id) ===
+                        parseInt(UserService.getCurrentUser());
+
+                    setIsEventOwner(isOwner);
+
+                    if (!isOwner) {
+                        const owner = await UserService.getUserById(
+                            selectedEventInfo.user_id
+                        );
+
+                        setOwner(owner);
+                    } else {
+                        setOwner(null);
+                    }
+                } catch (error) {
+                    console.error("Ошибка загрузки данных:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            loadData();
         }
     }, [editModalOpen, selectedEvent]);
-
-    const handleShare = async () => {
-        if (!newShareUser) return;
-
-        await SharedScheduleService.createSharedSchedule(
-            selectedEvent.id,
-            newShareUser,
-            "view",
-        );
-
-        const updated = await SharedScheduleService.getSharedUsers(
-            selectedEvent.id
-        );
-        setSharedWithUsers(updated);
-        setNewShareUser("");
-    };
-
-    const handleUnshare = async (userId) => {
-        const sharedRecord = sharedWithUsers.find((u) => u.id === userId);
-        if (sharedRecord) {
-            await SharedScheduleService.unshareSchedule(sharedRecord.shared_id);
-            setSharedWithUsers(sharedWithUsers.filter((u) => u.id !== userId));
-        }
-    };
 
     const handleEventClick = (info) => {
         const event = info.event;
@@ -113,6 +118,27 @@ const Calendar = ({ events, handleDateClick, refreshEvents }) => {
 
     const handleDeleteEvent = async () => {
         try {
+            const sharedSchedules = [
+                ...(await SharedScheduleService.getSharedSchedulesWithMe()),
+                ...(await SharedScheduleService.getSharedSchedules()),
+            ];
+
+            const hasAccess = sharedSchedules.some(
+                (schedule) =>
+                    schedule.schedule_id === parseInt(selectedEvent.id)
+            );
+
+            const selectedSharedEvent = sharedSchedules.find(
+                (schedule) =>
+                    schedule.schedule_id === parseInt(selectedEvent.id)
+            );
+
+            if (hasAccess) {
+                await SharedScheduleService.deleteSharedSchedule(
+                    selectedSharedEvent.id
+                );
+            }
+
             await ScheduleService.deleteSchedule(selectedEvent.id);
 
             refreshEvents();
@@ -152,129 +178,207 @@ const Calendar = ({ events, handleDateClick, refreshEvents }) => {
             {editModalOpen && (
                 <div className="modal">
                     <div className="modal-content">
-                        <div className="modal-header">
-                            <h2>Просмотр и редактирование события</h2>
-                        </div>
+                        {isLoading ? (
+                            <div className="loading-message">
+                                Загрузка данных...
+                            </div>
+                        ) : isEventOwner ? (
+                            <>
+                                <div className="modal-header">
+                                    <h2>Просмотр и редактирование события</h2>
+                                </div>
 
-                        <div className="modal-body">
-                            <input
-                                type="text"
-                                placeholder="Название"
-                                value={eventData.title || ""}
-                                onChange={(e) =>
-                                    setEventData({
-                                        ...eventData,
-                                        title: e.target.value,
-                                    })
-                                }
-                            />
-
-                            <input
-                                type="text"
-                                placeholder="Описание"
-                                value={eventData.description || ""}
-                                onChange={(e) =>
-                                    setEventData({
-                                        ...eventData,
-                                        description: e.target.value,
-                                    })
-                                }
-                            />
-
-                            <input
-                                type="datetime-local"
-                                value={formatForDateTimeLocal(eventData.start)}
-                                onChange={(e) => {
-                                    setEventData({
-                                        ...eventData,
-                                        start: new Date(
-                                            parseDateTimeLocal(e.target.value)
-                                        ),
-                                    });
-                                }}
-                            />
-
-                            <input
-                                type="datetime-local"
-                                value={formatForDateTimeLocal(eventData.end)}
-                                onChange={(e) => {
-                                    setEventData({
-                                        ...eventData,
-                                        end: new Date(
-                                            parseDateTimeLocal(e.target.value)
-                                        ),
-                                    });
-                                }}
-                            />
-
-                            <input
-                                type="color"
-                                value={eventData.color}
-                                onChange={(e) =>
-                                    setEventData({
-                                        ...eventData,
-                                        color: e.target.value,
-                                    })
-                                }
-                            />
-                            <div className="shared-with-section">
-                                <h3>Поделено с:</h3>
-                                {sharedWithUsers.length > 0 ? (
-                                    <ul className="shared-users-list">
-                                        {sharedWithUsers.map((user) => (
-                                            <li key={user.id}>
-                                                {user.username}
-                                                <button
-                                                    onClick={() =>
-                                                        handleUnshare(user.id)
-                                                    }
-                                                    className="unshare-btn"
-                                                >
-                                                    Отменить доступ
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p>
-                                        Событие не расшарено с другими
-                                        пользователями
-                                    </p>
-                                )}
-
-                                <div className="add-sharing">
-                                    <select
-                                        value={newShareUser}
+                                <div className="modal-body">
+                                    <input
+                                        type="text"
+                                        placeholder="Название"
+                                        value={eventData.title || ""}
                                         onChange={(e) =>
-                                            setNewShareUser(e.target.value)
+                                            setEventData({
+                                                ...eventData,
+                                                title: e.target.value,
+                                            })
                                         }
+                                    />
+
+                                    <input
+                                        type="text"
+                                        placeholder="Описание"
+                                        value={eventData.description || ""}
+                                        onChange={(e) =>
+                                            setEventData({
+                                                ...eventData,
+                                                description: e.target.value,
+                                            })
+                                        }
+                                    />
+
+                                    <input
+                                        type="datetime-local"
+                                        value={formatForDateTimeLocal(
+                                            eventData.start
+                                        )}
+                                        onChange={(e) => {
+                                            setEventData({
+                                                ...eventData,
+                                                start: new Date(
+                                                    parseDateTimeLocal(
+                                                        e.target.value
+                                                    )
+                                                ),
+                                            });
+                                        }}
+                                    />
+
+                                    <input
+                                        type="datetime-local"
+                                        value={formatForDateTimeLocal(
+                                            eventData.end
+                                        )}
+                                        onChange={(e) => {
+                                            setEventData({
+                                                ...eventData,
+                                                end: new Date(
+                                                    parseDateTimeLocal(
+                                                        e.target.value
+                                                    )
+                                                ),
+                                            });
+                                        }}
+                                    />
+
+                                    <input
+                                        type="color"
+                                        value={eventData.color}
+                                        onChange={(e) =>
+                                            setEventData({
+                                                ...eventData,
+                                                color: e.target.value,
+                                            })
+                                        }
+                                    />
+
+                                    <div className="sharing-section">
+                                        <h3>Вы создатель события</h3>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        onClick={() => setEditModalOpen(false)}
                                     >
-                                        <option value="">Выберите друга</option>
-                                        {friends.map((friend) => (
-                                            <option
-                                                key={friend.id}
-                                                value={friend.id}
-                                            >
-                                                {friend.username}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button onClick={handleShare}>
-                                        Поделиться
+                                        Отмена
+                                    </button>
+                                    <button onClick={handleDeleteEvent}>
+                                        Удалить
+                                    </button>
+                                    <button onClick={handleUpdateEvent}>
+                                        Сохранить
                                     </button>
                                 </div>
-                            </div>
-                        </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="modal-header">
+                                    <h2>Просмотр события</h2>
+                                </div>
 
-                        <div className="modal-footer">
-                            <button onClick={() => setEditModalOpen(false)}>
-                                Отмена
-                            </button>
-                            <button onClick={handleDeleteEvent}>Удалить</button>
-                            <button onClick={handleUpdateEvent}>
-                                Сохранить
-                            </button>
-                        </div>
+                                <div className="modal-body">
+                                    <input
+                                        type="text"
+                                        placeholder="Название"
+                                        value={eventData.title || ""}
+                                        onChange={(e) =>
+                                            setEventData({
+                                                ...eventData,
+                                                title: e.target.value,
+                                            })
+                                        }
+                                        readOnly
+                                    />
+
+                                    <input
+                                        type="text"
+                                        placeholder="Описание"
+                                        value={eventData.description || ""}
+                                        onChange={(e) =>
+                                            setEventData({
+                                                ...eventData,
+                                                description: e.target.value,
+                                            })
+                                        }
+                                        readOnly
+                                    />
+
+                                    <input
+                                        type="datetime-local"
+                                        value={formatForDateTimeLocal(
+                                            eventData.start
+                                        )}
+                                        onChange={(e) => {
+                                            setEventData({
+                                                ...eventData,
+                                                start: new Date(
+                                                    parseDateTimeLocal(
+                                                        e.target.value
+                                                    )
+                                                ),
+                                            });
+                                        }}
+                                        readOnly
+                                    />
+
+                                    <input
+                                        type="datetime-local"
+                                        value={formatForDateTimeLocal(
+                                            eventData.end
+                                        )}
+                                        onChange={(e) => {
+                                            setEventData({
+                                                ...eventData,
+                                                end: new Date(
+                                                    parseDateTimeLocal(
+                                                        e.target.value
+                                                    )
+                                                ),
+                                            });
+                                        }}
+                                        readOnly
+                                    />
+
+                                    <input
+                                        type="color"
+                                        value={eventData.color}
+                                        onChange={(e) =>
+                                            setEventData({
+                                                ...eventData,
+                                                color: e.target.value,
+                                            })
+                                        }
+                                        readOnly
+                                    />
+
+                                    <div className="sharing-section">
+                                        <h3>
+                                            Событие предоставлено вам
+                                            пользователем:{" "}
+                                            <strong>
+                                                {owner?.username ||
+                                                    "Неизвестный пользователь"}
+                                            </strong>
+                                        </h3>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer-1">
+                                    <button
+                                        onClick={() => setEditModalOpen(false)}
+                                    >
+                                        Выйти
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
