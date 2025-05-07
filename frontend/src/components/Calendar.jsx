@@ -1,9 +1,9 @@
-import ruLocale from "@fullcalendar/core/locales/ru";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
+import ruLocale from "@fullcalendar/core/locales/ru.js";
+import dayGridPlugin from "@fullcalendar/daygrid/index.js";
+import interactionPlugin from "@fullcalendar/interaction/index.js";
 import FullCalendar from "@fullcalendar/react";
-import rrulePlugin from "@fullcalendar/rrule";
-import timeGridPlugin from "@fullcalendar/timegrid";
+import rrulePlugin from "@fullcalendar/rrule/index.js";
+import timeGridPlugin from "@fullcalendar/timegrid/index.js";
 import React, { useEffect, useState } from "react";
 import ScheduleService from "../services/ScheduleService";
 import SharedScheduleService from "../services/SharedScheduleService";
