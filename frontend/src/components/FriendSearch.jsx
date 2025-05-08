@@ -61,7 +61,7 @@ const FriendSearch = ({ onSendRequest }) => {
                 </div>
             )}
 
-            {user && (
+            {user && !error && (
                 <>
                     <div className="user-info">
                         <div>

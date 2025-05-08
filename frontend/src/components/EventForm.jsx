@@ -152,7 +152,7 @@ const EventForm = ({ open, onClose, formData, onChange, onSubmit }) => {
                                 }
                                 className="form-group"
                             />
-                            <label className="form-group">
+                            <label className="friend-item">
                                 <input
                                     type="checkbox"
                                     name="is_all_day"
@@ -187,7 +187,7 @@ const EventForm = ({ open, onClose, formData, onChange, onSubmit }) => {
                                 }
                                 className="form-group"
                             />
-                            <label className="form-group">
+                            <label className="friend-item">
                                 <input
                                     type="checkbox"
                                     name="is_recurring"

@@ -1,12 +1,19 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
+  frontend:
+    build: ./frontend
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
     ports:
       - "9000:8000"
     volumes:
-      - .:/app
+      - ./backend:/app
     env_file:
       - .env
     environment:
@@ -38,4 +45,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data: 
+  redis_data:
